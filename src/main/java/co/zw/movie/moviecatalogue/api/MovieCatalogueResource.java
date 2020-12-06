@@ -6,6 +6,7 @@ import co.zw.movie.moviecatalogue.model.Rating;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,28 +23,26 @@ import java.util.stream.Collectors;
 @RequestMapping("/catalogue")
 public class MovieCatalogueResource {
 
-    private RestTemplate restTemplate;
     private WebClient.Builder webclientBuilder;
 
     @Value("${movies.uri}")
     private String uri;
 
     @Autowired
-    public MovieCatalogueResource(RestTemplate restTemplate,@Qualifier("projectBuilder")
+    public MovieCatalogueResource(@Qualifier("projectBuilder")
             WebClient.Builder webclientBuilder) {
-        this.restTemplate = restTemplate;
         this.webclientBuilder = webclientBuilder;
     }
 
     @RequestMapping("/{userId}")
     public List<CatalogueItem> getCatalogue(@PathVariable String userId) {
-        List<Rating> ratings = Arrays.asList(
-                new Rating("12346", 5),
-                new Rating("246", 2)
-        );
+        List<Rating> ratings = webclientBuilder.build()
+                .get()
+                .uri()
+                .retrieve()
+                .bodyToMono(new ParameterizedTypeReference<List<Rating>> () {})
+                .block();
         return ratings.stream().map(rating -> {
-            //Movie movie = restTemplate.getForObject(uri + "/" + rating.getMovieId(), Movie.class);
-            // use new webclientBuilder instead restTemplate is getting deprecated
             Movie movie = webclientBuilder.build()
                     .get()
                     .uri(uri + "/" + rating.getMovieId())
